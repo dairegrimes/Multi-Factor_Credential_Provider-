@@ -14,8 +14,9 @@
 #endif
 #include <unknwn.h>
 #include "CSampleCredential.h"
+#include "KeystrokeDynamics.h"
 #include "guid.h"
-#include "phoneConnected.h"
+#include "PhoneConnected.h"
 #include <windows.h>
 #include "bthdef.h"
 #include "BluetoothAPIs.h"
@@ -24,6 +25,9 @@
 #include <iostream>
 #include <vector>
 #include <ws2bth.h>
+#include <ctime>
+#include "Clock.h"
+
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "irprops.lib")
@@ -46,6 +50,8 @@ CSampleCredential::CSampleCredential():
     ZeroMemory(_rgCredProvFieldDescriptors, sizeof(_rgCredProvFieldDescriptors));
     ZeroMemory(_rgFieldStatePairs, sizeof(_rgFieldStatePairs));
     ZeroMemory(_rgFieldStrings, sizeof(_rgFieldStrings));
+
+
 
 
 }
@@ -77,7 +83,8 @@ HRESULT CSampleCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
 {
     HRESULT hr = S_OK;
     _cpus = cpus;
-
+	start = clock();
+	
     GUID guidProvider;
     pcpUser->GetProviderID(&guidProvider);
     _fIsLocalUser = (guidProvider == Identity_LocalUserProvider);
@@ -95,21 +102,11 @@ HRESULT CSampleCredential::Initialize(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus,
     {
         hr = SHStrDupW(L"Sample Credential", &_rgFieldStrings[SFI_LABEL]);
     }
-	if (!phoneConnect)
+	if (SUCCEEDED(hr))
 	{
-		if (SUCCEEDED(hr))
-		{
-			hr = SHStrDupW(L"Not Connnected", &_rgFieldStrings[SFI_LARGE_TEXT]);
-		}
+		hr = SHStrDupW(L"Multi-Factor Authentication", &_rgFieldStrings[SFI_LARGE_TEXT]);
 	}
 
-	else
-	{
-		if (SUCCEEDED(hr))
-		{
-			hr = SHStrDupW(L"Connnected", &_rgFieldStrings[SFI_LARGE_TEXT]);
-		}
-	}
     
 	
     if (SUCCEEDED(hr))
@@ -340,15 +337,13 @@ HRESULT CSampleCredential::GetSubmitButtonValue(DWORD dwFieldID, _Out_ DWORD *pd
 HRESULT CSampleCredential::SetStringValue(DWORD dwFieldID, _In_ PCWSTR pwz)
 {
     HRESULT hr;
-	
-	
-	cl = clock();
-	
 
-	if ((cl / (double)CLOCKS_PER_SEC) > 10)
-	{
-		keyCorrect = false;
-	}
+	
+	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	
+	keystrokedynamics.getKeystrokes(duration);
+	
+	
 
     // Validate parameters.
     if (dwFieldID < ARRAYSIZE(_rgCredProvFieldDescriptors) &&
@@ -447,89 +442,7 @@ HRESULT CSampleCredential::CommandLinkClicked(DWORD dwFieldID)
     return hr;
 }
 
-vector<BLUETOOTH_DEVICE_INFO> scanDevices()
-{
-	BLUETOOTH_DEVICE_SEARCH_PARAMS bdsp;
-	BLUETOOTH_DEVICE_INFO bdi;
-	HBLUETOOTH_DEVICE_FIND hbf;
-	vector<BLUETOOTH_DEVICE_INFO> res;
 
-	ZeroMemory(&bdsp, sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS));
-
-	// set options for how we want to load our list of BT devices
-	bdsp.dwSize = sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS);
-	bdsp.fReturnAuthenticated = TRUE;
-	bdsp.fReturnRemembered = TRUE;
-	bdsp.fReturnUnknown = TRUE;
-	bdsp.fReturnConnected = TRUE;
-	bdsp.fIssueInquiry = TRUE;
-	bdsp.cTimeoutMultiplier = 4;
-	bdsp.hRadio = NULL;
-
-	bdi.dwSize = sizeof(bdi);
-
-	// enumerate our bluetooth devices
-	hbf = BluetoothFindFirstDevice(&bdsp, &bdi);
-	if (hbf)
-	{
-		do
-		{
-			res.push_back(bdi);
-		} while (BluetoothFindNextDevice(hbf, &bdi));
-
-		// close our device enumerator
-		BluetoothFindDeviceClose(hbf);
-	}
-
-	return res;
-}
-
-bool CSampleCredential::scanPhone()
-{
-
-	// scan devices
-	vector<BLUETOOTH_DEVICE_INFO> devices = scanDevices();
-
-
-
-	// list all devices
-	int pdIndex = -1;
-	int foundDev = -1;
-	vector<BLUETOOTH_DEVICE_INFO>::const_iterator devci;
-	for (devci = devices.begin(); devci != devices.end(); devci++)
-	{
-		pdIndex++;
-		wstring ws = (*devci).szName;
-
-		if (ws.find(L"OnePlus 3") == 0)
-		{
-			phoneOn = true;
-			phoneConnect = true;
-			return true;
-		}
-
-
-
-		// see if we find our device (case sensitive)
-		if (ws.find(L"RNBT-DCE1") != string::npos)
-			foundDev = pdIndex;
-	}
-
-	// pick our ismp device
-	if (foundDev == -1)
-	{
-		phoneOn = false;
-		return false;
-	}
-
-	BLUETOOTH_DEVICE_INFO pd = devices[foundDev];
-	wstring ws = pd.szName;
-
-	
-
-	getc(stdin);
-
-}
 
 // Collect the username and password into a serialized credential for the correct usage scenario
 // (logon/unlock is what's demonstrated in this sample).  LogonUI then passes these credentials
@@ -544,25 +457,26 @@ HRESULT CSampleCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
     *ppwszOptionalStatusText = nullptr;
     *pcpsiOptionalStatusIcon = CPSI_NONE;
     ZeroMemory(pcpcs, sizeof(*pcpcs));
-	//scanPhone();
+
+	if (!keystrokedynamics.getAverage(keystrokedynamics.KeySwitchTime))
+	{
+		return E_FAIL;
+	}
+
 
 	/*
-	if (!phoneOn)
+	if (!PhoneConnected::scanPhone())
 	{
 		return E_FAIL;
 	}
 	
-	*/
 
-	
-	
-	/*
-	if (!keyCorrect)
+	if (!FacialRecognition::getFace())
 	{
 		return E_FAIL;
 	}
+
 	*/
-	
 
     // For local user, the domain and user name can be split from _pszQualifiedUserName (domain\username).
     // CredPackAuthenticationBuffer() cannot be used because it won't work with unlock scenario.

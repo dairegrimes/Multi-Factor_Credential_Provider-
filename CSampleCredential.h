@@ -22,21 +22,25 @@
 #include <propkey.h>
 #include "common.h"
 #include "dll.h"
+#include <ctime>
 #include "resource.h"
 #pragma once
-#include <windows.h>
+
 #include "bthdef.h"
-#include "BluetoothAPIs.h"
+
 #include <tchar.h>
 #include <string>
-#include <iostream>
-#include <vector>
+
 #include <ws2bth.h>
-#include "CSampleCredential.h"
 #include <conio.h>
 #include <iostream>
-#include <ctime>
 #include <vector>
+#include "PhoneConnected.h"
+#include "KeystrokeDynamics.h";
+#include "FacialRecognition.h";
+#include "CSampleCredential.h"
+
+
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "irprops.lib")
@@ -51,7 +55,7 @@ class CSampleCredential : public ICredentialProviderCredential2, ICredentialProv
 {
 public:
 	
-	bool scanPhone();
+	
 	
     // IUnknown
     IFACEMETHODIMP_(ULONG) AddRef()
@@ -127,8 +131,7 @@ public:
                        _In_ FIELD_STATE_PAIR const *rgfsp,
                        _In_ ICredentialProviderUser *pcpUser);
     CSampleCredential();
-	bool findPhone = false;
-	void cameraOn();
+
 
   private:
 
@@ -146,14 +149,10 @@ public:
     DWORD                                   _dwComboIndex;                                  // Tracks the current index of our combobox.
     bool                                    _fShowControls;                                 // Tracks the state of our show/hide controls link.
     bool                                    _fIsLocalUser;                                  // If the cred prov is assosiating with a local user tile
-	bool									phoneOn = false;
-	string									Connected = "Connected";
-	string									notConnected = "Not Connected";
-	
-	bool									phoneConnect = false;
-	bool									keyCorrect = true;
-	clock_t									cl;
-	int										j = 0;
-	int										counter = 0;
-	
+
+
+	clock_t start;
+	int counter = 0;
+	double duration;
+	KeystrokeDynamics keystrokedynamics;
 };
