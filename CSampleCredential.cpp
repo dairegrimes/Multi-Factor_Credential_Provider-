@@ -51,7 +51,7 @@ CSampleCredential::CSampleCredential():
     ZeroMemory(_rgFieldStatePairs, sizeof(_rgFieldStatePairs));
     ZeroMemory(_rgFieldStrings, sizeof(_rgFieldStrings));
 
-
+	
 
 
 }
@@ -71,7 +71,10 @@ CSampleCredential::~CSampleCredential()
     CoTaskMemFree(_pszUserSid);
     CoTaskMemFree(_pszQualifiedUserName);
     DllRelease();
+
 }
+
+
 
 
 // Initializes one credential with the field information passed in.
@@ -215,6 +218,7 @@ HRESULT CSampleCredential::SetSelected(_Out_ BOOL *pbAutoLogon)
 {
     *pbAutoLogon = FALSE;
     return S_OK;
+	
 }
 
 // Similarly to SetSelected, LogonUI calls this when your tile was selected
@@ -223,6 +227,7 @@ HRESULT CSampleCredential::SetSelected(_Out_ BOOL *pbAutoLogon)
 HRESULT CSampleCredential::SetDeselected()
 {
     HRESULT hr = S_OK;
+	keystrokedynamics = KeystrokeDynamics();
     if (_rgFieldStrings[SFI_PASSWORD])
     {
         size_t lenPassword = wcslen(_rgFieldStrings[SFI_PASSWORD]);
@@ -236,6 +241,8 @@ HRESULT CSampleCredential::SetDeselected()
             _pCredProvCredentialEvents->SetFieldString(this, SFI_PASSWORD, _rgFieldStrings[SFI_PASSWORD]);
         }
     }
+
+	
 
     return hr;
 }
@@ -458,24 +465,25 @@ HRESULT CSampleCredential::GetSerialization(_Out_ CREDENTIAL_PROVIDER_GET_SERIAL
     *pcpsiOptionalStatusIcon = CPSI_NONE;
     ZeroMemory(pcpcs, sizeof(*pcpcs));
 
+	
 	if (!keystrokedynamics.getAverage(keystrokedynamics.KeySwitchTime))
 	{
-		return E_FAIL;
-	}
-
-
-	/*
-	if (!PhoneConnected::scanPhone())
-	{
+		keystrokedynamics = KeystrokeDynamics();
 		return E_FAIL;
 	}
 	
-
-	if (!FacialRecognition::getFace())
+	/*
+	if (!PhoneConnected::scanPhone())
 	{
+		keystrokedynamics = KeystrokeDynamics();
 		return E_FAIL;
 	}
 
+	if (!FacialRecognition::getFace())
+	{
+		keystrokedynamics = KeystrokeDynamics();
+		return E_FAIL;
+	}
 	*/
 
     // For local user, the domain and user name can be split from _pszQualifiedUserName (domain\username).
@@ -626,6 +634,7 @@ HRESULT CSampleCredential::ReportResult(NTSTATUS ntsStatus,
     // If we failed the logon, try to erase the password field.
     if (FAILED(HRESULT_FROM_NT(ntsStatus)))
     {
+		keystrokedynamics = KeystrokeDynamics();
         if (_pCredProvCredentialEvents)
         {
             _pCredProvCredentialEvents->SetFieldString(this, SFI_PASSWORD, L"");

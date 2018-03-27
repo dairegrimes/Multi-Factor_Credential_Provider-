@@ -1,6 +1,18 @@
 #include "KeystrokeDynamics.h";
 
 
+KeystrokeDynamics::KeystrokeDynamics()
+{
+
+}
+
+
+KeystrokeDynamics::~KeystrokeDynamics()
+{
+
+}
+
+
 
 
 int readkey(clock_t start)
@@ -52,12 +64,13 @@ void KeystrokeDynamics::getKeystrokes(double duration)
 bool KeystrokeDynamics::getAverage(vector<double> KeySwitchTime)
 {
 	double storedST[] = { 0.078, 0.072, 0.116, 0.178, 0.165, 0.191, 0.216, 0.043, 0.166, 0.163 };
-	vector<double> diff;
-	vector<double> average;
+	
 
+	
 
+	// Read in classifier from here
 
-
+	
 
 	for (int i = 0; i < KeySwitchTime.size() - 1; i++)
 	{
@@ -68,7 +81,6 @@ bool KeystrokeDynamics::getAverage(vector<double> KeySwitchTime)
 	for (int i = 0; i < KeySwitchTime.size() - 1; i++)
 	{
 		average.push_back(findDifference(diff[i], storedST[i]));
-
 	}
 
 	for (int i = 0; i < KeySwitchTime.size() - 1; i++)
@@ -78,10 +90,8 @@ bool KeystrokeDynamics::getAverage(vector<double> KeySwitchTime)
 
 	result = (total / average.size());
 
-	ofstream myfile;
-	myfile.open("C:\\Users\\daire\\Desktop\\QRCODEFILE.txt");
-	myfile << result;
-	myfile.close();
+	
+
 
 	if (result >= 70)
 	{
@@ -91,6 +101,10 @@ bool KeystrokeDynamics::getAverage(vector<double> KeySwitchTime)
 	{
 		return false;
 	}
+	ofstream myfile;
+	myfile.open("C:\\Users\\daire\\Desktop\\QRCODEFILE.txt");
+	myfile << "fail";
+	myfile.close();
 	
 	
 

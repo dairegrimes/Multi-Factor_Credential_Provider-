@@ -24,7 +24,11 @@ class KeystrokeDynamics
 
 public:
 
+	KeystrokeDynamics();
+	~KeystrokeDynamics();
 	vector<double> KeySwitchTime;
+	vector<double> diff;
+	vector<double> average;
 	void getKeystrokes(double duration);
 
 	double keyDown = 0;
@@ -37,6 +41,8 @@ public:
 	int result = 0;
 	
 	bool getAverage(vector<double> KeySwitchTime);
+
+	
 
 
 
